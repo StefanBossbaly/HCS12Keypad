@@ -4,13 +4,15 @@
         ORG $2000       ;Start at memory address 2000
         LDX #$0000      ;Register base is 0x00
         BRA SETUP       ;GOTO main
-        
-BWAIT:	LDD #$FFFF
-BLP:    CPD #$0000
-        BEQ BEND
-        SUBD #$0001
-        BRA BLP
-BEND:   RTS
+
+;void BWAIT(void)
+;Busy waits by counting down from 0xFFFF
+BWAIT:  LDD #$FFFF      ;Load 0xFFFF into register D
+BLP:    CPD #$0000      ;Compare it with 0x0000
+        BEQ BEND        ;End the loop if they are equal
+        SUBD #$0001     ;Decrement 1 from D
+        BRA BLP         ;Loop
+BEND:   RTS             ;Return to sub routine
         
 SETUP:  LDAA #$0F
         STAA DDRB,x     ;Set 0x0F into DDRB this makes PB0-3 as output and 4-7 as inputs
