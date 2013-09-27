@@ -3,20 +3,54 @@
 
         ORG $2000       ;Start at memory address 2000
         LDX #$0000      ;Register base is 0x00
-        BRA MAIN               ;GOTO main
+        BRA MAIN        ;GOTO main
+        
+COUNT:  RMB 2
         
         
 MAIN:   LDAA #$0F
         STAA DDRB,x     ;Set 0x0F into DDRB this makes PB0-3 as output and 4-7 as inputs
-        CLRA            ;Clear A
-        CLRB            ;Clear B
-        LDAA #$70
-        STAA RTICTL,x
+        
+        LDAA #$80
+        STAA TSCR,X     ;Turn on timer
+        
+	LDD #INTH
+        STD TOIvec,X    ;Store the ISR in the vector table
+        
+        LDAA TMSK2,X
+        ORAA #$80
+        STAA TMSK2,X    ;Set timer overflow interrupt
+        
+        LDAA TFLG2,X
+        ANDA #$80
+        STAA TFLG2,X    ;Clear overflow bit
+        
+        LDD #$0000
+        STD COUNT
+        
         CLI             ;Enable interrupts
+        
+        JSR KEYIO
+        SWI
+        
 LOOP:   BRA LOOP
 
-RTISR:  LDD #$1010
+
+;-------------------------------------------------------------------------------
+;void INTH(void)
+;Handles the timer overflow interrupt
+;-------------------------------------------------------------------------------
+INTH:   LDD COUNT
+        ADDD #$01
+        STD COUNT
+        CPD #$FFFF
+        BNE OTHER
+        JSR KEYIO
         SWI
+OTHER:	LDAA TFLG2,X
+        ANDA #$80
+        STAA TFLG2,X    ;Clear overflow bit
+        RTI
 ;-------------------------------------------------------------------------------
 ;void BWAIT(void)
 ;Busy waits by counting down from 0xFFFF
@@ -69,16 +103,16 @@ CNOIN:  LDAA #$11        ;Load 17 into A register
 ;-------------------------------------------------------------------------------
 KEYIO:  LDAA #$08       ;Set 0x08 into Port B
         STAA PORTB,x    ;This sets PB4 as HIGH all other are LOW
-        JSR BWAIT `     ;Wait a bit for the input to prop
+        ;JSR BWAIT `     ;Wait a bit for the input to prop
         LDAA #$00       ;Load 0 into A
         PSHA            ;Push it onto the stack
         JSR CINPUT      ;Jump to the subroutine
         LEAS 1,SP       ;Put the stack back to normal
         CMPA #$11
         BNE HASIN
-         LDAA #$04       ;Set 0x04 into Port B
+        LDAA #$04       ;Set 0x04 into Port B
         STAA PORTB,x    ;This sets PB3 as HIGH all other are LOW
-        JSR BWAIT
+        ;JSR BWAIT
         LDAA #$01       ;Load 1 as column parameter
         PSHA
         JSR CINPUT      ;Jump to the subroutine
@@ -87,7 +121,7 @@ KEYIO:  LDAA #$08       ;Set 0x08 into Port B
         BNE HASIN
         LDAA #$02       ;Set 0x02 into Port B
         STAA PORTB,x    ;This sets PB1 as HIGH all other are LOW
-        JSR BWAIT
+        ;JSR BWAIT
         LDAA #$02       ;Load 2 into A
         PSHA            ;Push it onto the stack
         JSR CINPUT      ;Jump to the subroutine
@@ -96,7 +130,7 @@ KEYIO:  LDAA #$08       ;Set 0x08 into Port B
         BNE HASIN
         LDAA #$01       ;Set 0x01 into Port B
         STAA PORTB,x    ;This sets PB0 as HIGH all other are LOW
-        JSR BWAIT
+        ;JSR BWAIT
         LDAA #$03       ;Load 2 into A
         PSHA            ;Push it onto the stack
         JSR CINPUT      ;Jump to the subroutine
