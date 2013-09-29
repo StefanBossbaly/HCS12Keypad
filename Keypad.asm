@@ -13,7 +13,7 @@ SPACE:  RMB 1
         
 MAIN:   LDAA #$0F       ;Set 0x0F into DDRB this makes PB0-3 as output and 4-7 as inputs
         STAA DDRB
-        LDAA #$80      	;Turn on timer
+        LDAA #$80       ;Turn on timer
         STAA TSCR
         LDD #INTH       ;Store the ISR in the vector table
         STD TOIvec
@@ -54,9 +54,9 @@ INTH:   LDD COUNT       ;Increment count
 INTBUF: LDAB SPACE      ;Make sure there was a space inbetween
         CMPB #$00
         BEQ INTCLR
-	LDY INDEX
+        LDY INDEX
         STAA BUFFER,Y   ;Store the keystroke into the buffer
-        LDD INDEX      	;Increment index
+        LDD INDEX       ;Increment index
         ADDD #$0001
         STD INDEX
         LDAA #$00       ;Set space = 0
@@ -64,7 +64,7 @@ INTBUF: LDAB SPACE      ;Make sure there was a space inbetween
         BRA INTCLR
 INTNKY: LDAA #$01       ;Set space to 1
         STAA SPACE
-INTCLR:	LDAA TFLG2      ;Clear overflow bit
+INTCLR: LDAA TFLG2      ;Clear overflow bit
         ANDA #$80
         STAA TFLG2
         RTI             ;Return
@@ -84,7 +84,7 @@ BEND:   RTS             ;Return to sub routine
 ;Sees if there is any input on the column and returns it in the A register
 ;If there is no input then it returns 17
 ;-------------------------------------------------------------------------------
-CINPUT: LDAA PORTB    	;Load port b into
+CINPUT: LDAA PORTB      ;Load port b into
         ANDA #$F0       ;Get the upper nibble
         CMPA #$00       ;See if there is any input
         BEQ CNOIN       ;There is no input
@@ -118,9 +118,8 @@ CNOIN:  LDAA #$11        ;Load 17 into A register
 ;Sees if there is any input on keypad and returns it in the A register
 ;If there is no input then it returns 17
 ;-------------------------------------------------------------------------------
-KEYIO:  LDAA #$08	;Set 0x08 into Port B
-        STAA PORTB    	;This sets PB4 as HIGH all other are LOW
-        ;JSR BWAIT `    ;Wait a bit for the input to prop
+KEYIO:  LDAA #$08       ;Set 0x08 into Port B
+        STAA PORTB      ;This sets PB4 as HIGH all other are LOW
         LDAA #$00       ;Load 0 into A
         PSHA            ;Push it onto the stack
         JSR CINPUT      ;Jump to the subroutine
@@ -128,8 +127,7 @@ KEYIO:  LDAA #$08	;Set 0x08 into Port B
         CMPA #$11
         BNE HASIN
         LDAA #$04       ;Set 0x04 into Port B
-        STAA PORTB   	;This sets PB3 as HIGH all other are LOW
-        ;JSR BWAIT
+        STAA PORTB      ;This sets PB3 as HIGH all other are LOW
         LDAA #$01       ;Load 1 as column parameter
         PSHA
         JSR CINPUT      ;Jump to the subroutine
@@ -137,8 +135,7 @@ KEYIO:  LDAA #$08	;Set 0x08 into Port B
         CMPA #$11
         BNE HASIN
         LDAA #$02       ;Set 0x02 into Port B
-        STAA PORTB    	;This sets PB1 as HIGH all other are LOW
-        ;JSR BWAIT
+        STAA PORTB      ;This sets PB1 as HIGH all other are LOW
         LDAA #$02       ;Load 2 into A
         PSHA            ;Push it onto the stack
         JSR CINPUT      ;Jump to the subroutine
@@ -146,8 +143,7 @@ KEYIO:  LDAA #$08	;Set 0x08 into Port B
         CMPA #$11
         BNE HASIN
         LDAA #$01       ;Set 0x01 into Port B
-        STAA PORTB    	;This sets PB0 as HIGH all other are LOW
-        ;JSR BWAIT
+        STAA PORTB      ;This sets PB0 as HIGH all other are LOW
         LDAA #$03       ;Load 2 into A
         PSHA            ;Push it onto the stack
         JSR CINPUT      ;Jump to the subroutine
