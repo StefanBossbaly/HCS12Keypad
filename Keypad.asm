@@ -4,34 +4,32 @@
         ORG $2000       ;Start at memory address 2000
         LDX #$0000      ;Register base is 0x00
         BRA MAIN        ;GOTO main
-        
+
 COUNT:  RMB 2
+BUFFER: RMB 10
+INDEX:  RMB 2
+SPACE:  RMB 1
         
         
-MAIN:   LDAA #$0F
-        STAA DDRB,x     ;Set 0x0F into DDRB this makes PB0-3 as output and 4-7 as inputs
-        
-        LDAA #$80
-        STAA TSCR,X     ;Turn on timer
-        
-	LDD #INTH
-        STD TOIvec,X    ;Store the ISR in the vector table
-        
-        LDAA TMSK2,X
+MAIN:   LDAA #$0F       ;Set 0x0F into DDRB this makes PB0-3 as output and 4-7 as inputs
+        STAA DDRB
+        LDAA #$80      	;Turn on timer
+        STAA TSCR
+        LDD #INTH       ;Store the ISR in the vector table
+        STD TOIvec
+        LDAA TMSK2      ;Set timer overflow interrupt
         ORAA #$80
-        STAA TMSK2,X    ;Set timer overflow interrupt
-        
-        LDAA TFLG2,X
+        STAA TMSK2
+        LDAA TFLG2      ;Clear overflow bit
         ANDA #$80
-        STAA TFLG2,X    ;Clear overflow bit
-        
-        LDD #$0000
+        STAA TFLG2
+        LDD #$0000      ;Init count
         STD COUNT
-        
+        LDD #$0000      ;Init index
+        STD INDEX
+        LDAA #$00       ;Init space
+        STAA SPACE
         CLI             ;Enable interrupts
-        
-        JSR KEYIO
-        SWI
         
 LOOP:   BRA LOOP
 
@@ -40,17 +38,36 @@ LOOP:   BRA LOOP
 ;void INTH(void)
 ;Handles the timer overflow interrupt
 ;-------------------------------------------------------------------------------
-INTH:   LDD COUNT
-        ADDD #$01
+INTH:   LDD COUNT       ;Increment count
+        ADDD #$0001
         STD COUNT
-        CPD #$FFFF
-        BNE OTHER
-        JSR KEYIO
-        SWI
-OTHER:	LDAA TFLG2,X
+        CPD #$005F      ;See if we need to check the keypad
+        BNE INTCLR
+        LDD #$0000      ;Reset the value of count
+        STD COUNT
+        JSR KEYIO       ;Check to see if we have input
+        CMPA #$11
+        BEQ INTNKY
+        CMPA #$0F       ;Check to see if we flush the buffer
+        BNE INTBUF
+        SWI             ;Flush key was pressed
+INTBUF: LDAB SPACE      ;Make sure there was a space inbetween
+        CMPB #$00
+        BEQ INTCLR
+	LDY INDEX
+        STAA BUFFER,Y   ;Store the keystroke into the buffer
+        LDD INDEX      	;Increment index
+        ADDD #$0001
+        STD INDEX
+        LDAA #$00       ;Set space = 0
+        STAA SPACE
+        BRA INTCLR
+INTNKY: LDAA #$01       ;Set space to 1
+        STAA SPACE
+INTCLR:	LDAA TFLG2      ;Clear overflow bit
         ANDA #$80
-        STAA TFLG2,X    ;Clear overflow bit
-        RTI
+        STAA TFLG2
+        RTI             ;Return
 ;-------------------------------------------------------------------------------
 ;void BWAIT(void)
 ;Busy waits by counting down from 0xFFFF
@@ -67,7 +84,7 @@ BEND:   RTS             ;Return to sub routine
 ;Sees if there is any input on the column and returns it in the A register
 ;If there is no input then it returns 17
 ;-------------------------------------------------------------------------------
-CINPUT: LDAA PORTB,x    ;Load port b into
+CINPUT: LDAA PORTB    	;Load port b into
         ANDA #$F0       ;Get the upper nibble
         CMPA #$00       ;See if there is any input
         BEQ CNOIN       ;There is no input
@@ -79,7 +96,7 @@ CINPUT: LDAA PORTB,x    ;Load port b into
         BEQ  CINR2
         CMPA #$80       ;Compare to the bit pattern 0x80 (fourth row)
         BEQ  CINR3
-        LDAA #$11        ;Should never get here
+        LDAA #$11       ;Should never get here
         RTS
 CINR0:  LDAA #$00
         ADDA 2,SP
@@ -101,9 +118,9 @@ CNOIN:  LDAA #$11        ;Load 17 into A register
 ;Sees if there is any input on keypad and returns it in the A register
 ;If there is no input then it returns 17
 ;-------------------------------------------------------------------------------
-KEYIO:  LDAA #$08       ;Set 0x08 into Port B
-        STAA PORTB,x    ;This sets PB4 as HIGH all other are LOW
-        ;JSR BWAIT `     ;Wait a bit for the input to prop
+KEYIO:  LDAA #$08	;Set 0x08 into Port B
+        STAA PORTB    	;This sets PB4 as HIGH all other are LOW
+        ;JSR BWAIT `    ;Wait a bit for the input to prop
         LDAA #$00       ;Load 0 into A
         PSHA            ;Push it onto the stack
         JSR CINPUT      ;Jump to the subroutine
@@ -111,7 +128,7 @@ KEYIO:  LDAA #$08       ;Set 0x08 into Port B
         CMPA #$11
         BNE HASIN
         LDAA #$04       ;Set 0x04 into Port B
-        STAA PORTB,x    ;This sets PB3 as HIGH all other are LOW
+        STAA PORTB   	;This sets PB3 as HIGH all other are LOW
         ;JSR BWAIT
         LDAA #$01       ;Load 1 as column parameter
         PSHA
@@ -120,7 +137,7 @@ KEYIO:  LDAA #$08       ;Set 0x08 into Port B
         CMPA #$11
         BNE HASIN
         LDAA #$02       ;Set 0x02 into Port B
-        STAA PORTB,x    ;This sets PB1 as HIGH all other are LOW
+        STAA PORTB    	;This sets PB1 as HIGH all other are LOW
         ;JSR BWAIT
         LDAA #$02       ;Load 2 into A
         PSHA            ;Push it onto the stack
@@ -129,7 +146,7 @@ KEYIO:  LDAA #$08       ;Set 0x08 into Port B
         CMPA #$11
         BNE HASIN
         LDAA #$01       ;Set 0x01 into Port B
-        STAA PORTB,x    ;This sets PB0 as HIGH all other are LOW
+        STAA PORTB    	;This sets PB0 as HIGH all other are LOW
         ;JSR BWAIT
         LDAA #$03       ;Load 2 into A
         PSHA            ;Push it onto the stack
