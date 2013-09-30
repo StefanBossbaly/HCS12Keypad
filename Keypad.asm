@@ -23,12 +23,9 @@ MAIN:   LDAA #$0F       ;Set 0x0F into DDRB this makes PB0-3 as output and 4-7 a
         LDAA TFLG2      ;Clear overflow bit
         ANDA #$80
         STAA TFLG2
-        LDD #$0000      ;Init count
-        STD COUNT
-        LDD #$0000      ;Init index
-        STD INDEX
-        LDAA #$00       ;Init space
-        STAA SPACE
+        MOVW #$0000, COUNT 	;Init count
+        MOVW #$0000, INDEX	;Init index
+        MOVB #$00, SPACE        ;Init space
         JSR SCISET      ;Setup SCI
         CLI             ;Enable interrupts
         
@@ -52,6 +49,11 @@ INTH:   LDD COUNT       ;Increment count
         BEQ INTNKY
         CMPA #$0F       ;Check to see if we flush the buffer
         BNE INTBUF
+        LDY INDEX
+        STAA BUFFER,Y
+        TFR Y,D
+        ADDD #$0001
+        STD INDEX
  	LDY #$0000      ;Flush key was pressed
 INTHLP: CPY INDEX
         BEQ INTHELP
@@ -65,6 +67,7 @@ INTHLP: CPY INDEX
         BRA INTHLP
 INTHELP:LDD #$0000      ;Reset the buffer
         STD INDEX
+        SWI
         BRA INTCLR
 INTBUF: LDAB SPACE      ;Make sure there was a space inbetween
         CMPB #$00
