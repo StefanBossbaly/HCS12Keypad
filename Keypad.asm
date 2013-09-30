@@ -32,7 +32,8 @@ MAIN:   LDAA #$0F       ;Set 0x0F into DDRB this makes PB0-3 as output and 4-7 a
         JSR SCISET      ;Setup SCI
         CLI             ;Enable interrupts
         
-LOOP:	BRA LOOP
+LOOP:   WAI
+	BRA LOOP
 
 
 ;-------------------------------------------------------------------------------
