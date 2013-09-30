@@ -29,9 +29,10 @@ MAIN:   LDAA #$0F       ;Set 0x0F into DDRB this makes PB0-3 as output and 4-7 a
         STD INDEX
         LDAA #$00       ;Init space
         STAA SPACE
+        JSR SCISET      ;Setup SCI
         CLI             ;Enable interrupts
         
-LOOP:   BRA LOOP
+LOOP:	BRA LOOP
 
 
 ;-------------------------------------------------------------------------------
@@ -68,6 +69,31 @@ INTCLR: LDAA TFLG2      ;Clear overflow bit
         ANDA #$80
         STAA TFLG2
         RTI             ;Return
+        
+;-------------------------------------------------------------------------------
+;void SCISET(void)
+;Setup the Serial Comunication Interface
+;-------------------------------------------------------------------------------
+SCISET: LDD #5000
+	STAB SC1BDL
+        STAA SC1BDH
+        CLRA
+        STAA SC1CR1
+        LDAA #$0E
+        STAA SC1CR2
+        RTS
+
+;-------------------------------------------------------------------------------
+;void SNDSCI(byte data)
+;Send the value at the address over the SCI
+;-------------------------------------------------------------------------------
+SNDSCI: LDAA SC1SR1
+        ANDA #$80
+        BEQ SNDSCI      ;Make sure that we can send the bit
+        LDAA 2,SP       ;Get the data off the stack
+        STAA SC1DRL     ;Transmit
+        RTS
+        
 ;-------------------------------------------------------------------------------
 ;void BWAIT(void)
 ;Busy waits by counting down from 0xFFFF
