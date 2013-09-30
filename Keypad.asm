@@ -33,7 +33,7 @@ MAIN:   LDAA #$0F       ;Set 0x0F into DDRB this makes PB0-3 as output and 4-7 a
         CLI             ;Enable interrupts
         
 LOOP:   WAI
-	BRA LOOP
+        BRA LOOP
 
 
 ;-------------------------------------------------------------------------------
@@ -52,7 +52,20 @@ INTH:   LDD COUNT       ;Increment count
         BEQ INTNKY
         CMPA #$0F       ;Check to see if we flush the buffer
         BNE INTBUF
-        SWI             ;Flush key was pressed
+ 	LDY #$0000      ;Flush key was pressed
+INTHLP: CPY INDEX
+        BEQ INTHELP
+        LDAA BUFFER,Y   ;Load byte into A register
+        PSHA
+        JSR SNDSCI      ;Call send byte subroutine
+        LEAS 1,SP
+        TFR Y,D         ;Add 1 to Y register which means we have to transfer
+        ADDD #$0001
+        TFR D,Y
+        BRA INTHLP
+INTHELP:LDD #$0000      ;Reset the buffer
+        STD INDEX
+        BRA INTCLR
 INTBUF: LDAB SPACE      ;Make sure there was a space inbetween
         CMPB #$00
         BEQ INTCLR
@@ -76,7 +89,7 @@ INTCLR: LDAA TFLG2      ;Clear overflow bit
 ;Setup the Serial Comunication Interface
 ;-------------------------------------------------------------------------------
 SCISET: LDD #5000
-	STAB SC1BDL
+        STAB SC1BDL
         STAA SC1BDH
         CLRA
         STAA SC1CR1
