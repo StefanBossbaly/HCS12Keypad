@@ -26,8 +26,10 @@ MAIN:   LDAA #$0F       ;Set 0x0F into DDRB this makes PB0-3 as output and 4-7 a
         MOVW #$0000, COUNT 	;Init count
         MOVW #$0000, INDEX	;Init index
         MOVB #$00, SPACE        ;Init space
-        JSR SCISET      ;Setup SCI
-        CLI             ;Enable interrupts
+        JSR SCISET      	;Setup SCI
+        JSR PWMSET
+        JSR GENWAV
+        CLI             	;Enable interrupts
         
 LOOP:   WAI
         BRA LOOP
@@ -111,6 +113,57 @@ SNDSCI: LDAA SC1SR1
         STAA SC1DRL     ;Transmit
         RTS
         
+;-------------------------------------------------------------------------------
+;void PWMSET(void)
+;Send the value at the address over the SCI
+;-------------------------------------------------------------------------------
+APRESCALE       fcb     $00
+BPRESCALE       fcb     $00
+ASCALE          fcb     $05
+BSCALE          fcb     $05
+
+PWMSET:	LDAA #$FF
+        STAA PWMPOL
+        STAA PWMCLK
+        LDAA APRESCALE
+
+        LSLA
+        LSLA
+        LSLA
+        LSLA
+        ORAA BPRESCALE
+        
+        STAA PWMPRCLK
+        CLRA
+        STAA PWMCAE
+        STAA PWMCTL
+        LDAA ASCALE
+        STAA PWMSCLA
+        LDAA BSCALE
+        STAA PWMSCLB
+        LDAA #$FF
+        STAA PWMPER0
+        STAA PWMPER1
+        STAA PWMPER2
+        STAA PWMPER3
+        STAA PWMPER4
+        STAA PWMPER5
+        STAA PWMPER6
+        RTS
+        
+;-------------------------------------------------------------------------------
+;void GENWAV(void)
+;Generates the wave that the IR led will use to transmit
+;-------------------------------------------------------------------------------
+GENWAV: LDAA #$2B
+        STAA PWMPER7
+        LDAA #$1A
+        STAA PWMDTY7
+        LDAA PWME
+        ORAA #$80
+        STAA PWME
+        RTS
+
 ;-------------------------------------------------------------------------------
 ;void BWAIT(void)
 ;Busy waits by counting down from 0xFFFF
